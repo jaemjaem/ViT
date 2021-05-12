@@ -35,8 +35,5 @@ class VIT(nn.Module):
         for block in self.encoder:
             x = block(x)
 
-        #x = self.layer_norm(x)
         final_cls_token = x[:, 0]
-        output = self.head(final_cls_token)
-
-        return output
+        return self.head(self.layer_norm(final_cls_token))
