@@ -20,7 +20,6 @@ class VIT(nn.Module):
                 for _ in range(n_layers)
             ]
         )
-        self.layer_norm = nn.LayerNorm(embed_dim, eps=1e-6)
         self.head = nn.Linear(embed_dim, n_classes)
 
     def forward(self, inputs):
@@ -36,4 +35,4 @@ class VIT(nn.Module):
             x = block(x)
 
         final_cls_token = x[:, 0]
-        return self.head(self.layer_norm(final_cls_token))
+        return self.head(final_cls_token)
