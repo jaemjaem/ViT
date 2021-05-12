@@ -4,13 +4,14 @@ import torch.nn as nn
 class PatchEmbedd(nn.Module):
     def __init__(self, img_size, patch_size, in_chans=3, embed_dim=768):
         super().__init__()
-        self.img_size = img_size
-        self.patch_size = patch_size
-        self.n_patches = (img_size // patch_size) ** 2
+        self.img_size = img_size # image size = 32 x 32
+        self.patch_size = patch_size # 16 x 16
+        self.n_patches = (img_size // patch_size) ** 2 # 패치 개수
 
         self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
 
     def forward(self, inputs):
+        # input shape = (batch, channel, W, H)
         x = self.proj(inputs) # output -> (batch, embed_dim, n_patchW, n_patchH)
         x = x.flatten(2) # shape : (batch, embed_dim, n_patch)
         x = torch.transpose(x, 1, 2) # shape : (batch, n_patch, embed_dim)
@@ -29,7 +30,10 @@ class Attention(nn.Module):
         self.make_K = nn.Linear(dim, dim) # make K
         self.make_V = nn.Linear(dim, dim) # make V
 
+        self.dropout1 = nn.Dropout(0.2)
+
         self.proj = nn.Linear(dim, dim) # linear projection after Scaled Dot-Product Attention outputs are concated
+        self.dropout2 = nn.Dropout(0.2)
 
     def split_head(self, QKV, input_shape):
         batch, n_patch, _ = input_shape
@@ -54,6 +58,7 @@ class Attention(nn.Module):
         key_T = key.transpose(3, 2)
         scale_mat = torch.matmul(query, key_T) * (1 / self.scale) # output shape -> (batch, n_head, n_patch, n_patch)
         attn_mat = scale_mat.softmax(dim=-1) # Score between patches
+        attn_mat = self.dropout1(attn_mat)
 
         sdp_attn_output = torch.matmul(attn_mat, value) # output shape -> (batch, n_head, n_patch, head_dim)
         sdp_attn_output = sdp_attn_output.transpose(1, 2) # output shape -> (batch, n_patch, n_head, head_dim)
@@ -61,7 +66,7 @@ class Attention(nn.Module):
 
         # Wo Linear
         output = self.proj(sdp_attn_output)
-
+        output = self.dropout2(output)
         return output
 
 
@@ -70,14 +75,15 @@ class MLP(nn.Module):
         super().__init__()
         self.fc1 = nn.Linear(embed_dim, mlp_dim)
         self.fc2 = nn.Linear(mlp_dim, embed_dim)
-        self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(0.2)
         self.act = nn.GELU()
 
     def forward(self, inputs):
         x = self.fc1(inputs)
-        x = self.dropout(x)
         x = self.act(x)
+        x = self.dropout(x)
         x = self.fc2(x)
+        x = self.dropout(x)
 
         return x
 
