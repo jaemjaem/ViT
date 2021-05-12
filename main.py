@@ -36,8 +36,8 @@ def train():
 
     for epoch in range(1000):  # 데이터셋을 수차례 반복합니다.
         running_loss = 0.0
+        net.train()
         for i, data in enumerate(trainloader, 0):
-            net.train()
             # [inputs, labels]의 목록인 data로부터 입력을 받은 후;
             inputs, labels = data[0].to(device), data[1].to(device)
             # 변화도(Gradient) 매개변수를 0으로 만들고
@@ -61,8 +61,8 @@ def train():
         # validation part
         correct = 0
         total = 0
+        net.eval()
         for i, data in enumerate(valid_loader, 0):
-            net.eval()
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = net(inputs)
@@ -76,36 +76,6 @@ def train():
               )
 
     print('Finished Training')
-
-def test():
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-    validset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                            download=True, transform=transform)
-    valid_loader = torch.utils.data.DataLoader(validset, batch_size=10,
-                                               shuffle=False, num_workers=2)
-
-    net = VIT(n_layers=1, patch_size=4).to(device)
-    net.load_state_dict(torch.load('./checkpoints/200.pth'))
-    net.eval()
-
-    for epoch in range(1000):  # 데이터셋을 수차례 반복합니다.
-        correct = 0
-        total = 0
-        for i, data in enumerate(valid_loader, 0):
-            inputs, labels = data
-            inputs, labels = inputs.to(device), labels.to(device)
-            outputs = net(inputs)
-
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-        print('[%d epoch] Accuracy of the network on the validation images: %d %%' %
-              (epoch + 1, 100 * correct / total)
-              )
 
 if __name__ == '__main__':
     train()
